@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <glib.h>
 
+// https://github.com/sailfishos-mirror/glib/blob/92e059280f5be23cf77bbe4ec016b5cc0f9af959/glib/tests/date.c
+
 /*   run as 
 	 ./dt '1982-11-17' dt.txt
 */
