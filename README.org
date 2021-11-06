@@ -1,0 +1,25 @@
+
+* Estudo da Linguagem C e bibliotecas
+
+  Este repositório centraliza os experimentos e aprendizados
+
+  - das funções de manipulação de datas da biblioteca =glib-2.0= -- documentação [[https://docs.gtk.org/glib/index.html][aqui]];
+  - das funções de geração de números aleatórios da =gsl= (GNU Scientific Library) -- documentação [[https://www.gnu.org/software/gsl/doc/html/rng.html][aqui]];
+  - das funções de testes unitários da biblioteca =criterion= -- documentação [[https://criterion.readthedocs.io/en/master/][aqui]] e repositório github do projeto [[https://github.com/Snaipe/Criterion][aqui]];
+  - das funções para tratamento de argumentos em linha de comando =gettop()= e =getopt_long()= -- documentação [[https://www.gnu.org/software/libc/manual/html_node/Getopt.html][aqui]] e exemplo de uso [[https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html][aqui]];
+  - com programas que interagem com =stdin= e =stdout= e portanto amigáveis ao /piping/ em linha de comando;
+  - das funções de paralelização usando =pthread= -- tutorial [[https://janv.people.uic.edu/mcs572/mcs572notes/lec10.html][aqui]] e [[https://hpc-tutorials.llnl.gov/posix/][aqui]]
+
+	
+* Aplicações possíveis
+
+  Dominadas minimamente as funcionalidades anteriores, as seguintes tarefas podem ser implementadas
+
+  - estudos de experiência (A/E);
+  - simulações de monte carlo;
+  - produção de programas estatísticos/atuariais para linha de comando seguindo a [[https://en.wikipedia.org/wiki/Unix_philosophy][filosofia Unix]] conforme Peter Salus em /A quarter century of unix/:
+     #+begin_quote
+	 Write programs that do one thing and do it well.
+	 Write programs to work together.
+	 Write programs to handle text streams, because that is a universal interface.
+     #+end_quote

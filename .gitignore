@@ -1,0 +1,13 @@
+
+rng/*.o
+rng/*.out
+rng/*.csv
+rng/*.txt
+
+dates/*.o
+dates/*.out
+dates/*.csv
+dates/*.txt
+
+
+
