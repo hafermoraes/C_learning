@@ -14,7 +14,8 @@
 int main(int argc, char **argv) {
   
   int c;
-  char s,e,t;
+  int LEN = 100;
+  char s[LEN], e[LEN], t[LEN];
 
   while (1) 
 	{
@@ -47,14 +48,17 @@ int main(int argc, char **argv) {
 
 		case 's':
 		  printf("Start: '%s'\n", optarg);
+		  strncpy(s, optarg, sizeof(s));
 		  break;
 
 		case 'e':
 		  printf("  End: '%s'\n", optarg);
+		  strncpy(e, optarg, sizeof(e));
 		  break;
 
 		case 't':
 		  printf(" Type: '%s'\n", optarg);
+		  strncpy(t, optarg, sizeof(t));
 		  break;
 
 		case '?':
@@ -71,6 +75,12 @@ int main(int argc, char **argv) {
 		}
 	}
 
+  printf("\n");
+  printf("Variáveis lidas via linha de comando:\n\n");
+  printf("\ts = %s \t length = %lu\n", s, strlen(s) );
+  printf("\te = %s \t length = %lu\n", e, strlen(e) );
+  printf("\tt = %s \t length = %lu\n", t, strlen(t) );
+  
   return EXIT_SUCCESS;
 }
 

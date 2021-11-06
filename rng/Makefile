@@ -7,4 +7,4 @@ CC=gcc
 $(P): $(OBJECTS)
 
 clean:
-	rm *.o *.out *.txt
+	rm $(P)
