@@ -8,6 +8,8 @@
   - das funções de testes unitários da biblioteca =criterion= -- documentação [[https://criterion.readthedocs.io/en/master/][aqui]] e repositório github do projeto [[https://github.com/Snaipe/Criterion][aqui]];
   - das funções para tratamento de argumentos em linha de comando =gettop()= e =getopt_long()= -- documentação [[https://www.gnu.org/software/libc/manual/html_node/Getopt.html][aqui]] e exemplo de uso [[https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html][aqui]];
   - com programas que interagem com =stdin= e =stdout= e portanto amigáveis ao /piping/ em linha de comando;
+  - com programas que leiam uma linha por vez do =stdin== - exemplo de uso [[https://stackoverflow.com/a/35695762][aqui]]
+  - com programas que leiam linhas delimitadas por caracteres usando =strtok_r= -- exemplo de uso [[https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/][aqui]]
   - das funções de paralelização usando =pthread= -- tutorial [[https://janv.people.uic.edu/mcs572/mcs572notes/lec10.html][aqui]] e [[https://hpc-tutorials.llnl.gov/posix/][aqui]]
 
 	
@@ -18,8 +20,8 @@
   - estudos de experiência (A/E);
   - simulações de monte carlo;
   - produção de programas estatísticos/atuariais para linha de comando seguindo a [[https://en.wikipedia.org/wiki/Unix_philosophy][filosofia Unix]] conforme Peter Salus em /A quarter century of unix/:
-     #+begin_quote
+     #+begin_example
 	 Write programs that do one thing and do it well.
 	 Write programs to work together.
 	 Write programs to handle text streams, because that is a universal interface.
-     #+end_quote
+     #+end_example
