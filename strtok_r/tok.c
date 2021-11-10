@@ -6,7 +6,7 @@
 	 printf 'dob;policy_issue_date;policy_status_code;policy_status_date\n' > linhas.txt
 	 printf '1982-11-17;2010-01-01;1;\n' >> linhas.txt 
 	 printf '1977-06-23;2012-03-04;3;2015-09-17\n' >> linhas.txt 
-	 cat linhas.txt | ./tok
+	 tail -n+2 linhas.txt | ./tok
 */
 
 #include <stdio.h>
