@@ -56,7 +56,6 @@ void tokenize_policy_data(char *line, struct policy *policy_data);
 // main 
 int main(int argc, char **argv){
 
-
   setlocale( LC_ALL, "");
   
   /* Checks study parameters for valid values. */
