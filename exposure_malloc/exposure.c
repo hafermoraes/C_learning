@@ -55,6 +55,14 @@ void belongs_to_study(
 // main 
 int main(int argc, char **argv){
 
+  FILE *f_out; /* file container for out of study policies */
+  f_out = fopen("out_of_study","w");
+
+  if( f_out == NULL) {
+	printf("file can't be opened\n");
+	exit(1);
+  }
+
   // study variables
   char *study_start = malloc( 10 * sizeof(char));
   char *study_end   = malloc( 10 * sizeof(char));
@@ -80,11 +88,9 @@ int main(int argc, char **argv){
 	size_t len = 0;
 	ssize_t read = 0;
 
-	while (1) {
-	  read = getline(&line, &len, stdin);
-	  if (read == -1)
-		break;
-
+	/* reads first line of stdin*/
+	read = getline(&line, &len, stdin);
+	while ( read >= 0  ) {
 	  // tokenize line into policyholders data structures
 	  tokenize_stdin(
 					 line
@@ -101,14 +107,23 @@ int main(int argc, char **argv){
 					   ,policy_issue_date, policy_status_code, policy_status_date
 					   );
 
-	  printf("id: %s\n", policy_id);
-	  printf("in_study: %d\n", in_study);
-	  printf("reason_out: %s\n", reason_out);
+	  // if policy does not belong to study, save it to disk with the reasons why
+	  if ( in_study != 0) {
+
+		fprintf( f_out, "%s;%s\n", policy_id, reason_out);
+
+	  }
+	  
+	  /* printf("id: %s\n", policy_id); */
+	  /* printf("in_study: %d\n", in_study); */
+	  /* printf("reason_out: %s\n", reason_out); */
 	  
 	  // if not exposed to risk, skip line but document reason in a log file
 	  // if exposed, proceed to calculations and print results to stdout (long-format)
 	  // 
- 
+
+	  /* reads in next line from stdin*/
+	  read = getline(&line, &len, stdin);
 	}
 	
 	/* frees memory allocated for reading the lines of stdin */
@@ -128,10 +143,11 @@ int main(int argc, char **argv){
   free(policy_issue_date);
   free(policy_status_code); 
   free(policy_status_date);
- 
+
+  fclose(f_out);
+
   return EXIT_SUCCESS;
 }
-
 
 
 // declarations of functions
@@ -272,26 +288,26 @@ void belongs_to_study(int *in, char *reason, char *start, char *end, char *issue
 	  // not exposed to risk if...
 	  //   any of the dates are invalid
 	  if( !g_date_valid(pid) ){
-		strcat( reason, "Invalid policy issue date; ");
+		strcat( reason, "Invalid policy issue date, ");
 		(*in)++;
 	  }
 	  if( strlen(status_date) > 5 && !g_date_valid(psd) ){
-		strcat( reason, "Invalid policy status date; ");
+		strcat( reason, "Invalid policy status date, ");
 		(*in)++;
 	  }
 	  //   policy issue date is greater then study end date
 	  if( g_date_compare( pid, e) > 0 ) {
-		strcat( reason, "Policy issued after end of study; ");
+		strcat( reason, "Policy issued after end of study, ");
 		(*in)++;
 	  }
 	  //   policy issue date is greater then policy status date
 	  if( !strncmp(status_date,"",10)  && g_date_compare( pid, psd) > 0) {
-		strcat( reason, "Policy issued after status changes; ");
+		strcat( reason, "Policy issued after status changes, ");
 		(*in)++;
 	  }
 	  //   policy status date is smaller then study start date
 	  if( !strncmp(status_date,"",10) && g_date_compare( psd, e) > 0) {
-		strcat( reason, "Policy issued after end of study; ");
+		strcat( reason, "Policy issued after end of study, ");
 		(*in)++;
 	  }
 
