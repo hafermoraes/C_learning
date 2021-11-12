@@ -46,9 +46,9 @@ void tokenize_stdin(
 					);
 
 void belongs_to_study(
-					  int *in, char *reason
-					  ,char *start, char *end
-					  ,char *issue_date, char *status_code, char *status_date
+					  int *in, char **reason
+					  ,char **start, char **end
+					  ,char **issue_date, char **status_code, char **status_date
 					  );
 
 
@@ -102,9 +102,9 @@ int main(int argc, char **argv){
 	  char *reason_out = NULL;
 
 	  belongs_to_study(
-					   &in_study, reason_out
-					   ,study_start, study_end
-					   ,policy_issue_date, policy_status_code, policy_status_date
+					   &in_study, &reason_out
+					   ,&study_start, &study_end
+					   ,&policy_issue_date, &policy_status_code, &policy_status_date
 					   );
 
 	  // if policy does not belong to study, save it to disk with the reasons why
@@ -269,46 +269,72 @@ void tokenize_stdin(char *line, char **ptr_id, char **ptr_dob, char **ptr_sex, c
   strncpy( *ptr_psd, token, strlen(token)) ;
 }
 
-void belongs_to_study(int *in, char *reason, char *start, char *end, char *issue_date, char *status_code, char *status_date){
-
+void belongs_to_study(int *in, char **ptr_reason, char **start, char **end, char **issue_date, char **status_code, char **status_date){
+	  
   GDate *e = g_date_new ();
   GDate *s = g_date_new ();
   GDate *pid = g_date_new ();
   GDate *psd = g_date_new ();
 
-  g_date_set_parse (e, end);
-  g_date_set_parse (s, start);
-  g_date_set_parse (pid, issue_date);
-  g_date_set_parse (psd, status_date);
+  g_date_set_parse (e, *end);
+  g_date_set_parse (s, *start);
+  g_date_set_parse (pid, *issue_date);
+  g_date_set_parse (psd, *status_date);
 
   // not exposed to risk if...
   //   any of the dates are invalid
   if( !g_date_valid(pid) ){
-	strcat( reason, "Invalid policy issue date, ");
+	char pid_invalid[] = "Invalid policy issue date, ";
+
+	*ptr_reason = (char *) realloc( *ptr_reason, strlen(pid_invalid) );
+
+	strncat( *ptr_reason, pid_invalid, strlen(pid_invalid) );
+
 	(*in)++;
   }
-  if( strlen(status_date) > 5 && !g_date_valid(psd) ){
-	strcat( reason, "Invalid policy status date, ");
+	  
+  if( !g_date_valid(psd) ){
+	char psd_invalid[] = "Invalid policy status date, ";
+
+	*ptr_reason = (char *) realloc( *ptr_reason, strlen(psd_invalid) );
+
+	strncat( *ptr_reason, psd_invalid, strlen(psd_invalid) );
+
 	(*in)++;
   }
   //   policy issue date is greater then study end date
   if( g_date_compare( pid, e) > 0 ) {
-	strcat( reason, "Policy issued after end of study, ");
+	char pid_gt_end[] = "Policy issued after end of study, ";
+
+	*ptr_reason = (char *) realloc( *ptr_reason, strlen(pid_gt_end) );
+
+	strncat( *ptr_reason, pid_gt_end, strlen(pid_gt_end) );
+
 	(*in)++;
   }
   //   policy issue date is greater then policy status date
-  if( !strncmp(status_date,"",10)  && g_date_compare( pid, psd) > 0) {
-	strcat( reason, "Policy issued after status changes, ");
+  if( g_date_valid(pid) && g_date_valid(psd) && g_date_compare( pid, psd) > 0) {
+	char pid_gt_psd[] = "Policy issued after status changes, ";
+
+	*ptr_reason = (char *) realloc( *ptr_reason, strlen(pid_gt_psd) );
+
+	strncat( *ptr_reason, pid_gt_psd, strlen(pid_gt_psd) );
+
 	(*in)++;
   }
   //   policy status date is smaller then study start date
-  if( !strncmp(status_date,"",10) && g_date_compare( psd, e) > 0) {
-	strcat( reason, "Policy issued after end of study, ");
+  if( g_date_valid(psd) && g_date_compare( psd, e) < 0) {
+	char psd_lt_start[] = "Policy status date before start of study, ";
+
+	*ptr_reason = (char *) realloc( *ptr_reason, strlen(psd_lt_start) );
+
+	strncat( *ptr_reason, psd_lt_start, strlen( psd_lt_start) );
+
 	(*in)++;
   }
 
-  g_date_free(e);
-  g_date_free(s);
-  g_date_free(pid);
-  g_date_free(psd);
+  g_date_free(e);    e = NULL;
+  g_date_free(s);    s = NULL;
+  g_date_free(pid);  pid = NULL;
+  g_date_free(psd);  psd = NULL;
 }
