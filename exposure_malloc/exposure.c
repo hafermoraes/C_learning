@@ -63,7 +63,6 @@ int main(int argc, char **argv){
   char *study_start        = NULL;
   char *study_end          = NULL;
   char *study_type         = NULL;
-  
   // policyholder variables
   char *policy_id          = NULL;
   char *policy_dob         = NULL;
@@ -71,7 +70,7 @@ int main(int argc, char **argv){
   char *policy_issue_date  = NULL;
   char *policy_status_code = NULL;
   char *policy_status_date = NULL;
-
+  
   // necessary to ensure correct date parsing at g_date_set_parse()
   setlocale( LC_ALL, "");
 
@@ -102,6 +101,7 @@ int main(int argc, char **argv){
 				   ,&policy_id, &policy_dob, &policy_gender, &policy_issue_date, &policy_status_code, &policy_status_date
 				   );
 
+	printf("Policy ID: %s\n", policy_id);
 
 	// if policy does not belong to study, save it to disk with the reasons why
 	if ( in_study != 0) {
@@ -112,17 +112,16 @@ int main(int argc, char **argv){
 	// if not exposed to risk, skip line but document reason in a log file
 	// if exposed, proceed to calculations and print results to stdout (long-format)
 	// 
-
-  } // while
 	
-	// frees memory allocated for reading the lines of stdin
+  } // while
+  
+  // frees memory allocated for reading the lines of stdin
   free(line);
  
   // freeing memory from study variables
   free(study_start);         
   free(study_end);           
   free(study_type);
-	
   // frees memory from policy variables
   free(policy_id);           
   free(policy_dob);          
@@ -130,7 +129,7 @@ int main(int argc, char **argv){
   free(policy_issue_date);   
   free(policy_status_code);  
   free(policy_status_date);  
-
+  
   fclose(f_out);
 
   return EXIT_SUCCESS;
@@ -241,22 +240,24 @@ void tokenize_and_validate_stdin(char *line, int *in, FILE *f_out, char *start, 
   // ID
   //   parsing 
   token = strtok_r(rest, DELIM, &rest);
-  *ptr_id = (char *) realloc( *ptr_id, strlen(token) );
+  // *ptr_id = (char *) realloc( *ptr_id, strlen(token) );
+  *ptr_id = (char *) calloc( strlen(token)+1, sizeof(char) );
   if( *ptr_id == NULL){
 	fprintf(stderr, "Could not reallocate memory for *ptr_id. Exiting...\n");
 	exit(EXIT_FAILURE);
   }
-  strncpy( *ptr_id, token, strlen(token)) ;
+  strcpy( *ptr_id, token) ;
 
   // Date of Birth 
   //   parsing
   token = strtok_r(rest, DELIM, &rest);
-  *ptr_dob = (char *) realloc( *ptr_dob, strlen(token) );
+  // *ptr_dob = (char *) realloc( *ptr_dob, strlen(token) );
+  *ptr_dob = (char *) calloc( strlen(token)+1, sizeof(char) );
   if( *ptr_dob == NULL){
 	fprintf(stderr, "Could not reallocate memory for *ptr_dob. Exiting...\n");
 	exit(EXIT_FAILURE);
   }
-  strncpy( *ptr_dob, token, strlen(token)) ;
+  strcpy( *ptr_dob, token) ;
   //   single validation
   g_date_set_parse( date, *ptr_dob );
   if( !g_date_valid(date) ){
@@ -267,22 +268,24 @@ void tokenize_and_validate_stdin(char *line, int *in, FILE *f_out, char *start, 
   // Gender
   //   parsing
   token = strtok_r(rest, DELIM, &rest); 
-  *ptr_sex = (char *) realloc( *ptr_sex, strlen(token) );
+  // *ptr_sex = (char *) realloc( *ptr_sex, strlen(token) );
+  *ptr_sex = (char *) calloc( strlen(token)+1, sizeof(char) );
   if( *ptr_sex == NULL){
 	fprintf(stderr, "Could not reallocate memory for *ptr_sex.\n");
 	exit(EXIT_FAILURE);
   }
-  strncpy( *ptr_sex, token, strlen(token)) ;
+  strcpy( *ptr_sex, token) ;
 
   // Policy Issue Date
   //   parsing
   token = strtok_r(rest, DELIM, &rest);
-  *ptr_pid = (char *) realloc( *ptr_pid, strlen(token) );
+  // *ptr_pid = (char *) realloc( *ptr_pid, strlen(token) );
+  *ptr_pid = (char *) calloc( strlen(token)+1, sizeof(char) );
   if( *ptr_pid == NULL){
 	fprintf(stderr, "Could not reallocate memory for *ptr_pid. Exiting...\n");
 	exit(EXIT_FAILURE);
   }
-  strncpy( *ptr_pid, token, strlen(token)) ;
+  strcpy( *ptr_pid, token) ;
   //   single validation
   g_date_set_parse( date, *ptr_pid );
   if( !g_date_valid(date) ){
@@ -293,22 +296,24 @@ void tokenize_and_validate_stdin(char *line, int *in, FILE *f_out, char *start, 
   // Policy Status Code
   //   parsing
   token = strtok_r(rest, DELIM, &rest);
-  *ptr_psc = (char *) realloc( *ptr_psc, strlen(token) );
+  // *ptr_psc = (char *) realloc( *ptr_psc, strlen(token) );
+  *ptr_psc = (char *) calloc( strlen(token)+1, sizeof(char) );
   if( *ptr_psc == NULL){
 	fprintf(stderr, "Could not reallocate memory for *ptr_psc. Exiting...\n");
 	exit(EXIT_FAILURE);
   }
-  strncpy( *ptr_psc, token, strlen(token)) ;
+  strcpy( *ptr_psc, token) ;
 
   // Policy Status Date
   //   parsing
   token = strtok_r(rest, DELIM, &rest);
-  *ptr_psd = (char *) realloc( *ptr_psd, strlen(token) );
+  // *ptr_psd = (char *) realloc( *ptr_psd, strlen(token) );
+  *ptr_psd = (char *) calloc( strlen(token)+1, sizeof(char) );
   if( *ptr_psd == NULL){
 	fprintf(stderr, "Could not reallocate memory for *ptr_psd. Exiting...\n");
 	exit(EXIT_FAILURE);
   }
-  strncpy( *ptr_psd, token, strlen(token) -1 ) ; //ignoring the '\n' at the end of line
+  strcpy( *ptr_psd, token ) ; //ignoring the '\n' at the end of line
   //   single validation
   g_date_set_parse( date, *ptr_psd );
   if( !g_date_valid(date) ){
@@ -351,78 +356,14 @@ void tokenize_and_validate_stdin(char *line, int *in, FILE *f_out, char *start, 
   }
   
   // frees memory of the pointers
+  free(ptr_id);
+  free(ptr_dob);
+  free(ptr_sex);
+  free(ptr_pid);
+  free(ptr_psc);
+  free(ptr_psd);
+
   token = NULL;
   rest = NULL;
   g_date_free(date);
 }
-
-
-/* void belongs_to_study(int *in, char **ptr_reason, char *start, char *end, char *issue_date, char *status_code, char *status_date){ */
-	  
-/*   GDate *e = g_date_new (); */
-/*   GDate *s = g_date_new (); */
-/*   GDate *pid = g_date_new (); */
-/*   GDate *psd = g_date_new (); */
-
-/*   g_date_set_parse (e, end); */
-/*   g_date_set_parse (s, start); */
-/*   g_date_set_parse (pid, issue_date); */
-/*   g_date_set_parse (psd, status_date); */
-
-/*   // not exposed to risk if... */
-/*   //   any of the dates are invalid */
-/*   if( !g_date_valid(pid) ){ */
-/* 	char pid_invalid[] = "Invalid policy issue date, "; */
-
-/* 	*ptr_reason = (char *) realloc( *ptr_reason, strlen(pid_invalid) ); */
-
-/* 	strncat( *ptr_reason, pid_invalid, strlen(pid_invalid) ); */
-
-/* 	(*in)++; */
-/*   } */
-	  
-/*   if( strlen(status_date) != 0 && !g_date_valid(psd) ){ */
-/* 	char psd_invalid[] = "Invalid policy status date, "; */
-
-/* 	*ptr_reason = (char *) realloc( *ptr_reason, strlen(psd_invalid) ); */
-
-/* 	strncat( *ptr_reason, psd_invalid, strlen(psd_invalid) ); */
-
-/* 	(*in)++; */
-/*   } */
-/*   //   policy issue date is greater then study end date */
-/*   if( g_date_compare( pid, e) > 0 ) { */
-/* 	char pid_gt_end[] = "Policy issued after end of study, "; */
-
-/* 	*ptr_reason = (char *) realloc( *ptr_reason, strlen(pid_gt_end) ); */
-
-/* 	strncat( *ptr_reason, pid_gt_end, strlen(pid_gt_end) ); */
-
-/* 	(*in)++; */
-/*   } */
-/*   //   policy issue date is greater then policy status date */
-/*   if( g_date_valid(pid) && g_date_valid(psd) && g_date_compare( pid, psd) > 0) { */
-/* 	char pid_gt_psd[] = "Policy issued after status changes, "; */
-
-/* 	*ptr_reason = (char *) realloc( *ptr_reason, strlen(pid_gt_psd) ); */
-
-/* 	strncat( *ptr_reason, pid_gt_psd, strlen(pid_gt_psd) ); */
-
-/* 	(*in)++; */
-/*   } */
-/*   //   policy status date is smaller then study start date */
-/*   if( g_date_valid(psd) && g_date_compare( psd, s) < 0) { */
-/* 	char psd_lt_start[] = "Policy status date before start of study, "; */
-
-/* 	*ptr_reason = (char *) realloc( *ptr_reason, strlen(psd_lt_start) ); */
-
-/* 	strncat( *ptr_reason, psd_lt_start, strlen( psd_lt_start) ); */
-
-/* 	(*in)++; */
-/*   } */
-
-/*   g_date_free(e);    e = NULL; */
-/*   g_date_free(s);    s = NULL; */
-/*   g_date_free(pid);  pid = NULL; */
-/*   g_date_free(psd);  psd = NULL; */
-/* } */
