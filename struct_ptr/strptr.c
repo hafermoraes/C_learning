@@ -35,8 +35,10 @@ int main(void) {
 
 // function declarations
 void muda(policy **p){
+  
   (*p)->id = (char *) calloc( 10, sizeof(char) );
   printf( "p->id (endereço criado de dentro da muda(): %p.\n", (*p)->id);
+
   strcpy( (*p)->id , "teste.\n" );
   printf( "p->id (chamado de dentro da muda(): %s.\n", (*p)->id);
 
