@@ -162,3 +162,101 @@ int main(int argc, char **argv){
 
 // --------------------------------------------------------------------------------------------------------------------------
 // declarations of functions
+void study_parameters(
+					  int argc            // amount of command-line arguments
+					  ,char **argv        // array of command-line arguments
+					  ,bool *ok           // flag for validity of study based on the parameters given by the user
+					  ,exp_study **study  // pointer to pointer to struct containing pointers to parameters
+					  ){
+
+  // Read the command line arguments --start=YYYY-MM-DD --end=YYYY-MM-DD --type=int
+  // and return ~false~ to the variable ~valid_study~ in main() in case of any errors
+
+  // Set study pointer to NULL before any step
+  *study = NULL;
+  
+  // temporary variable for correct parsing of study start and study end dates
+  GDate *date = g_date_new();
+
+  // parsing of command line arguments
+  int c;
+  while (1) 
+	{
+      int option_index = 0;
+      static struct option long_options[] = 
+		{
+          {"start", required_argument, NULL, 's' },
+          {"end",   required_argument, NULL, 'e' },
+          {"type",  required_argument, NULL, 't' },
+          {NULL,    0,                 NULL,  0 }
+		};
+
+      c = getopt_long(argc, argv, "-:s:e:t:", long_options, &option_index);
+      if (c == -1)
+		break;
+
+      switch (c) 
+		{
+		case 1:
+		  fprintf( stderr, "Missing mandatory study parameters: start, end and type.\n");
+		  *ok = false; // setting flag on due to the error
+		  break;
+
+		case 's':
+		  // Read in the study start date
+		  g_date_set_parse (date, optarg);
+		  if ( g_date_valid(date) ){
+			(*study)->start = (char *) realloc( (*study)->start, strlen(optarg) );
+			strncpy( (*study)->start, optarg, strlen(optarg));
+		  }
+		  else {
+			fprintf( stderr, "Study start date must be a valid date.\n");
+			*ok = false; // setting flag on due to the error
+		  }
+		  break;
+
+		case 'e':
+		  // Read in the study end date
+		  g_date_set_parse (date, optarg);
+		  if( g_date_valid(date) ){
+			(*study)->end = (char *) realloc( (*study)->end, strlen(optarg) );
+			strncpy( (*study)->end, optarg, strlen(optarg));
+		  }
+		  else {
+			fprintf( stderr, "Study end date must be a valid date.\n");
+			*ok = false; // setting flag on due to the error
+		  }
+		  break;
+
+		case 't':
+		  // Read in the study type
+		  if ( atoi(optarg) == 0 ){
+			fprintf( stderr, "Study type must be a integer.\n");
+			*ok = false; // setting flag on due to the error
+		  } else {
+			(*study)->type = (char *) realloc( (*study)->type, strlen(optarg) );
+			strncpy( (*study)->type, optarg, strlen(optarg));
+		  }
+		  break;
+
+		case '?':
+		  printf("Unknown option %c\n", optopt);
+		  *ok = false; // setting flag on due to the error
+		  break;
+
+		case ':':
+		  printf("Missing option for %c\n", optopt);
+		  *ok = false; // setting flag on due to the error
+		  break;
+		} // switch case
+	} // while
+
+  // study start date after study end date
+  if( ((*study)->start != NULL) && ((*study)->end != NULL) && ( strcmp( (*study)->start, (*study)->end ) >= 0) ){
+	fprintf( stderr, "Study start date must be before study end date.\n");
+	*ok = false; // setting flag on due to the error
+  }
+  
+  g_date_free(date);
+
+}
