@@ -1,10 +1,17 @@
 /*   
-	 run as 
-
+	 create test stdin for simulating
 	 printf 'id;date_of_birth;policy_issue_date;policy_status_code;policy_status_date\n' > stdin.txt
 	 printf '1234;1982-11-17;2010-01-01;1;\n' >> stdin.txt 
 	 printf '5678;1977-06-23;2012-03-04;3;2015-09-17\n' >> stdin.txt 
-	 tail +2 stdin.txt | ./exposure --start=2010-01-01 --end=2021-12-31 --type=3
+	 printf '91011;1977-06-23;2012-33-04;3;2015-09-17\n' >> stdin.txt 
+	 printf '121314;1977-06-23;2012-03-04;3;\n' >> stdin.txt 
+
+
+	 run as 
+	 tail +2 stdin.txt | ./exposure --start=2000-01-01 --end=2008-12-31 --type=3
+
+	 check memory leaks with valgrind as
+	 tail +2 stdin.txt | valgrind ./exposure --start=2000-01-01 --end=2008-12-31 --type=3
 
 */
 
@@ -35,30 +42,30 @@ const char *DELIM = ";";
 // Relevant data structures for the experience study
 //
 //  common parameters (study level)
-typedef struct
+typedef struct study_str
 {
   char *start;         // start date of experience study (must be a valid date YYYY-MM-DD)
   char *end;           // end date of experience study (must be a valid date YYYY-MM-DD)
-  char *type           // type of experience study ( 2 Lapse, 3 Mortality, 4 Accidental Death, 5 TPD Disease, 6 TPD Accident
-} exp_study;
+  char *type;          // type of experience study ( 2 Lapse, 3 Mortality, 4 Accidental Death, 5 TPD Disease, 6 TPD Accident
+} study_str;
 //
 //  policy level parameters
-typedef struct
+typedef struct policy_str
 {
   char *id;            // any identification possible, must be unique to each policy
   char *date_of_birth; // date of birth of policyholder (must be a valid date YYYY-MM-DD)
   char *issue_date;    // day at which policyholder turned into client (must be a valid date YYYY-MM-DD)
   char *status_code;   // 1 Inforce, 2 Lapsed, 3 Death, 4 Accidental Death, 5 TPD Disease, 6 TPD Accident
   char *status_date;   // date detailing the status code (must be a valid date YYYY-MM-DD except for status code 1)
-} policy;
+} policy_str;
 
 // Structs containing
 //
 //  - the experience study parameters (initialized to NULL pointer)
-exp_study *study = NULL;
+study_str *study = NULL;
 //
 //  - and the policy parameters (initialized to NULL pointer)
-policy *policy = NULL;
+policy_str *policy = NULL;
 
 // --------------------------------------------------------------------------------------------------------------------------
 //  prototypes of the functions
@@ -66,7 +73,7 @@ void study_parameters(
 					  int argc            // amount of command-line arguments
 					  ,char **argv        // array of command-line arguments
 					  ,bool *ok           // flag for validity of study based on the parameters given by the user
-					  ,exp_study **study  // pointer to pointer to struct containing pointers to parameters
+					  ,study_str **study  // pointer to pointer to struct containing pointers to parameters
 					  );
 
 // --------------------------------------------------------------------------------------------------------------------------
@@ -78,14 +85,14 @@ int main(int argc, char **argv){
 
   // File connections
   //
-  //  ~exposures.csv~ file contains the exposures for each policyholder at each policy year in the experience study
+  //  ~exposures.csv~ file with the exposures for each policyholder at each policy year in the experience study
   FILE *f_exp = fopen("exposures.csv", "w");
   if( f_exp == NULL ){
 	fprintf( stderr, "Could not open file 'exposures.csv'. Aborting...\n");
 	exit( EXIT_FAILURE );
   }
   //
-  //  ~out_of_study.csv~ file is the LOG of policies which are not exposed to study due to inconsistencies in its inputs
+  //  ~out_of_study.csv~ file with the LOG of policies not exposed to study due to inconsistencies in their inputs
   FILE *f_out = fopen("out_of_study.csv", "w");
   if( f_out == NULL ){
 	fprintf( stderr, "Could not open file 'out_of_study.csv'. Aborting...\n");
@@ -117,7 +124,7 @@ int main(int argc, char **argv){
   while ( (read = getline( &line, &len, stdin )) != 1 ) {
 
 	// Step 3: Tokenize line and store policy inputs into the struct ~policy~
-	tokenize( line, &policy);
+	// tokenize( line, &policy);
 
 	// Step 4: Validate policy inputs and flag its exposure to study
 	//
@@ -135,10 +142,10 @@ int main(int argc, char **argv){
 	//    R1. Flag inconsistencies into log file ~out_of_study.csv~ ( FILE *f_out )
 	//    R2. Flag ~exposed_policy~to false
 	//
-	bool exposed_policy = true;
-	validate( policy, &exposed_policy, f_out );
-	if ( exposed_policy == false)
-	  continue; // go to next line
+	/* bool exposed_policy = true; */
+	/* validate( policy, &exposed_policy, f_out ); */
+	/* if ( exposed_policy == false) */
+	/*   continue; // go to next line */
 	
 	// Step 5: Calculate exposure by policy year for policies exposed to study
 	// 
@@ -166,14 +173,23 @@ void study_parameters(
 					  int argc            // amount of command-line arguments
 					  ,char **argv        // array of command-line arguments
 					  ,bool *ok           // flag for validity of study based on the parameters given by the user
-					  ,exp_study **study  // pointer to pointer to struct containing pointers to parameters
+					  ,study_str **study  // pointer to pointer to struct containing pointers to parameters
 					  ){
 
   // Read the command line arguments --start=YYYY-MM-DD --end=YYYY-MM-DD --type=int
   // and return ~false~ to the variable ~valid_study~ in main() in case of any errors
 
-  // Set study pointer to NULL before any step
+  // Set study pointer to NULL before allocating memory to it
   *study = NULL;
+  *study = (study_str *) malloc( sizeof(study_str) );
+  if (*study == NULL){
+	fprintf( stderr, "Could not allocate memory for ~study_str~ pointer from within ~study_parameters()~ function. Aborting...\n");
+	exit( EXIT_FAILURE );
+  }
+  // By succeeding memory allocation, initialize the struct pointers all to NULL
+  (*study)->start = NULL;
+  (*study)->end = NULL;
+  (*study)->type = NULL;
   
   // temporary variable for correct parsing of study start and study end dates
   GDate *date = g_date_new();
@@ -207,6 +223,10 @@ void study_parameters(
 		  g_date_set_parse (date, optarg);
 		  if ( g_date_valid(date) ){
 			(*study)->start = (char *) realloc( (*study)->start, strlen(optarg) );
+			if ( (*study)->start == NULL ){
+			  fprintf( stderr, "Could not allocate memory for ~(*study)->start~ pointer from within ~study_parameters()~ function. Aborting...\n");
+			  exit( EXIT_FAILURE );
+			}
 			strncpy( (*study)->start, optarg, strlen(optarg));
 		  }
 		  else {
@@ -220,6 +240,10 @@ void study_parameters(
 		  g_date_set_parse (date, optarg);
 		  if( g_date_valid(date) ){
 			(*study)->end = (char *) realloc( (*study)->end, strlen(optarg) );
+			if ( (*study)->end == NULL ){
+			  fprintf( stderr, "Could not allocate memory for ~(*study)->end~ pointer from within ~study_parameters()~ function. Aborting...\n");
+			  exit( EXIT_FAILURE );
+			}
 			strncpy( (*study)->end, optarg, strlen(optarg));
 		  }
 		  else {
@@ -235,6 +259,10 @@ void study_parameters(
 			*ok = false; // setting flag on due to the error
 		  } else {
 			(*study)->type = (char *) realloc( (*study)->type, strlen(optarg) );
+			if ( (*study)->type == NULL ){
+			  fprintf( stderr, "Could not allocate memory for ~(*study)->type~ pointer from within ~study_parameters()~ function. Aborting...\n");
+			  exit( EXIT_FAILURE );
+			}
 			strncpy( (*study)->type, optarg, strlen(optarg));
 		  }
 		  break;
@@ -256,7 +284,8 @@ void study_parameters(
 	fprintf( stderr, "Study start date must be before study end date.\n");
 	*ok = false; // setting flag on due to the error
   }
-  
+
+  // frees memory of the temporary variable for correct parsing of study start and study end dates
   g_date_free(date);
 
 }

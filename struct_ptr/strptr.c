@@ -13,13 +13,12 @@ typedef struct policy
   char *status_date;
 } policy;
 
+policy *p = NULL;
+
 // prototype of functions
 void muda(policy **);
 
 int main(void) {
-
-  policy *p = NULL;
-  p = (policy *) malloc( sizeof(policy) );
 
   //printf( "p->id (endereço antes de chamar muda()): %p\n", p->id);
 
@@ -35,6 +34,9 @@ int main(void) {
 
 // function declarations
 void muda(policy **p){
+
+  *p = NULL;
+  *p = (policy *) malloc( sizeof(policy) );
   
   (*p)->id = (char *) calloc( 10, sizeof(char) );
   printf( "p->id (endereço criado de dentro da muda(): %p.\n", (*p)->id);
