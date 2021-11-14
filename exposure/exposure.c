@@ -251,11 +251,16 @@ void study_parameters(
 		  // Read in the study start date
 		  g_date_set_parse (date, optarg);
 		  if ( g_date_valid(date) ){
-			(*study)->start = (char *) realloc( (*study)->start, strlen(optarg) );
+			/* (*study)->start = (char *) realloc( (*study)->start, strlen(optarg)*sizeof((*study)->start) ); */
+			(*study)->start = (char *) calloc( strlen(optarg), sizeof((*study)->start) );
 			if ( (*study)->start == NULL ){
 			  fprintf( stderr, "Could not allocate memory for ~(*study)->start~ pointer from within ~study_parameters()~ function. Aborting...\n");
 			  exit( EXIT_FAILURE );
 			}
+			// initializing char* to NUL
+			size_t start_n = sizeof( (*study)->start );
+			memset( (*study)->start, 0, start_n);
+			// copying contents to struct
 			strncpy( (*study)->start, optarg, strlen(optarg));
 		  }
 		  else {
@@ -268,11 +273,16 @@ void study_parameters(
 		  // Read in the study end date
 		  g_date_set_parse (date, optarg);
 		  if( g_date_valid(date) ){
-			(*study)->end = (char *) realloc( (*study)->end, strlen(optarg) );
+			/* (*study)->end = (char *) realloc( (*study)->end, strlen(optarg)*sizeof((*study)->end) ); */
+			(*study)->end = (char *) calloc( strlen(optarg), sizeof((*study)->end) );
 			if ( (*study)->end == NULL ){
 			  fprintf( stderr, "Could not allocate memory for ~(*study)->end~ pointer from within ~study_parameters()~ function. Aborting...\n");
 			  exit( EXIT_FAILURE );
 			}
+			// initializing char* to NUL
+			size_t end_n = sizeof( (*study)->end );
+			memset( (*study)->end, 0, end_n);
+			// copying contents to struct
 			strncpy( (*study)->end, optarg, strlen(optarg));
 		  }
 		  else {
@@ -287,11 +297,16 @@ void study_parameters(
 			fprintf( stderr, "Study type must be a integer.\n");
 			*ok = false; // setting flag on due to the error
 		  } else {
-			(*study)->type = (char *) realloc( (*study)->type, strlen(optarg) );
+			/* (*study)->type = (char *) realloc( (*study)->type, strlen(optarg)*sizeof((*study)->type) ); */
+			(*study)->type = (char *) calloc( strlen(optarg), sizeof((*study)->type) );
 			if ( (*study)->type == NULL ){
 			  fprintf( stderr, "Could not allocate memory for ~(*study)->type~ pointer from within ~study_parameters()~ function. Aborting...\n");
 			  exit( EXIT_FAILURE );
 			}
+			// initializing char* to NUL
+			size_t type_n = sizeof( (*study)->type );
+			memset( (*study)->type, 0, type_n );
+			// copying contents to struct
 			strncpy( (*study)->type, optarg, strlen(optarg));
 			study_type = atoi((*study)->type);
 		  }
@@ -316,7 +331,7 @@ void study_parameters(
   }
 
   // study type non numeric or outside interval [1,6]
-  if( study_type == 0 || !(study_type >= 1 && study_type <= 6)){
+  if( study_type == 0 || !(study_type >= 1 && study_type <= 6) ){
 	fprintf( stderr, "Study type must be a number between 1 and 6 .\n");
 	*ok = false; // setting flag on due to the error
   }
@@ -356,7 +371,7 @@ void tokenize(
   //token = strtok_r(rest, DELIM, &rest);
   token = strsep( &rest, DELIM);
   token_len  = (strlen(token)==0) ? 1 : strlen(token);
-  (*policy)->id = (char *) realloc( (*policy)->id, token_len + 1);
+  (*policy)->id = (char *) realloc( (*policy)->id, (token_len + 1)*sizeof((*policy)->id));
   if( (*policy)->id == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->id~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
@@ -367,7 +382,7 @@ void tokenize(
   //token = strtok_r(rest, DELIM, &rest);
   token = strsep( &rest, DELIM);
   token_len = (strlen(token)==0) ? 1 : strlen(token);
-  (*policy)->date_of_birth = (char *) realloc( (*policy)->date_of_birth, token_len + 1 );
+  (*policy)->date_of_birth = (char *) realloc( (*policy)->date_of_birth, (token_len + 1)*sizeof((*policy)->date_of_birth) );
   if( (*policy)->date_of_birth == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->date_of_birth~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
@@ -378,7 +393,7 @@ void tokenize(
   //token = strtok_r(rest, DELIM, &rest);
   token = strsep( &rest, DELIM);
   token_len = (strlen(token)==0) ? 1 : strlen(token);
-  (*policy)->issue_date = (char *) realloc( (*policy)->issue_date, token_len + 1 );
+  (*policy)->issue_date = (char *) realloc( (*policy)->issue_date, (token_len + 1)*sizeof((*policy)->issue_date) );
   if( (*policy)->issue_date == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->issue_date~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
@@ -389,7 +404,7 @@ void tokenize(
   //token = strtok_r(rest, DELIM, &rest);
   token = strsep( &rest, DELIM);
   token_len = (strlen(token)==0) ? 1 : strlen(token);
-  (*policy)->status_code = (char *) realloc( (*policy)->status_code, token_len + 1);
+  (*policy)->status_code = (char *) realloc( (*policy)->status_code, (token_len + 1)*sizeof((*policy)->status_code));
   if( (*policy)->status_code == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->status_code~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
@@ -400,12 +415,13 @@ void tokenize(
   //token = strtok_r(rest, DELIM, &rest);
   token = strsep( &rest, DELIM);
   token_len = (strlen(token)==0) ? 1 : strlen(token);
-  (*policy)->status_date = (char *) realloc( (*policy)->status_date, token_len + 1);
+  (*policy)->status_date = (char *) realloc( (*policy)->status_date, (token_len + 1)*sizeof((*policy)->status_date));
   if( (*policy)->status_date == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->status_date~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
   }
-  memset( (*policy)->status_date, 0, sizeof((*policy)->status_date) );
+  size_t psd_n = sizeof((*policy)->status_date);
+  memset( (*policy)->status_date, 0, psd_n );
   strcpy( (*policy)->status_date, token ) ; 
 
   // Free memory from pointers used for tokenize the read line from stdin
