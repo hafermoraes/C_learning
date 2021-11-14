@@ -1,17 +1,16 @@
 /*   
-	 create test stdin for simulating
-	 printf 'id;date_of_birth;policy_issue_date;policy_status_code;policy_status_date\n' > stdin.txt
-	 printf '1234;1982-11-17;2010-01-01;1;\n' >> stdin.txt 
-	 printf '5678;1977-06-23;2012-03-04;3;2015-09-17\n' >> stdin.txt 
-	 printf '91011;1977-06-23;2012-33-04;3;2015-09-17\n' >> stdin.txt 
-	 printf '121314;1977-06-23;2012-03-04;3;\n' >> stdin.txt 
+  create test stdin for simulating
+    printf 'id;date_of_birth;policy_issue_date;policy_status_code;policy_status_date\n' > stdin.txt
+	printf '1234;1982-11-17;2010-01-01;1;\n' >> stdin.txt 
+	printf '5678;1977-06-23;2012-03-04;3;2015-09-17\n' >> stdin.txt 
+	printf '91011;1977-06-23;2012-33-04;3;2015-09-17\n' >> stdin.txt 
+	printf '121314;1977-06-23;2012-03-04;3;\n' >> stdin.txt 
 
+  run as 
+    tail +2 stdin.txt | ./exposure --start=2000-01-01 --end=2008-12-31 --type=3
 
-	 run as 
-	 tail +2 stdin.txt | ./exposure --start=2000-01-01 --end=2008-12-31 --type=3
-
-	 check memory leaks with valgrind as
-	 tail +2 stdin.txt | valgrind ./exposure --start=2000-01-01 --end=2008-12-31 --type=3
+  check memory leaks with valgrind as
+    tail +2 stdin.txt | valgrind ./exposure --start=2000-01-01 --end=2008-12-31 --type=3
 
 */
 
@@ -75,6 +74,11 @@ void study_parameters(
 					  ,bool *ok           // flag for validity of study based on the parameters given by the user
 					  ,study_str **study  // pointer to pointer to struct containing pointers to parameters
 					  );
+void tokenize(
+			  line       // single, one at a time, line read from stdin
+			  ,&policy   // pointer to pointer to policy struct where inputs will be copied
+			  );
+
 
 // --------------------------------------------------------------------------------------------------------------------------
 // main 
@@ -121,10 +125,12 @@ int main(int argc, char **argv){
   size_t len = 0;
   ssize_t read = 0;
   
-  while ( (read = getline( &line, &len, stdin )) != 1 ) {
+  read = getline(&line, &len, stdin);
+  while ( read >= 0  ) {
+	//while ( (read = getline( &line, &len, stdin )) != 1 ) {
 
 	// Step 3: Tokenize line and store policy inputs into the struct ~policy~
-	// tokenize( line, &policy);
+	tokenize( line, &policy);
 
 	// Step 4: Validate policy inputs and flag its exposure to study
 	//
@@ -151,15 +157,29 @@ int main(int argc, char **argv){
 	// 
 	//  Export results into file ~exposures.csv~ ( FILE *f_exp ) and into well-formated stdout
 	
-	  
+	// reads in next line from stdin
+	read = getline(&line, &len, stdin);
   } // while
 
-  // Step 6: Free memory of allocated structs and pointers used until now
+  // Step 6: Free memory of allocated structs and pointers
+  //   6.1 ~line~, used to read lines of stdin 
   free(line);
-  free(policy);
-  free(study);
-  free(f_exp);
-  free(f_out);
+  //   6.2 ~study~ struct and its pointers to ~start~, ~end~ and ~type~
+  free( study->start );
+  free( study->end   );
+  free( study->type  );
+  free( study );
+  //   6.3 ~policy~ struct and its pointers to ~id~, ~date_of_birth~, ~issue_date~, ~status_code~ and ~status_date~
+  /* free( policy->id ); */
+  /* free( policy->date_of_birth ); */
+  /* free( policy-issue_date ); */
+  /* free( policy->status_code ); */
+  /* free( policy->status_date ); */
+  /* free( policy ); */
+
+  // Step 7: Close file connections to ~exposures.csv~ and ~out_of_study.csv~.
+  fclose(f_exp);
+  fclose(f_out);
 
   return EXIT_SUCCESS;
 } // main
@@ -289,3 +309,8 @@ void study_parameters(
   g_date_free(date);
 
 }
+
+/* void tokenize( */
+/* 			  line       // single, one at a time, line read from stdin */
+/* 			  ,&policy   // pointer to pointer to policy struct where inputs will be copied */
+/* 			  ); */
