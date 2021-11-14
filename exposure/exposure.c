@@ -75,8 +75,8 @@ void study_parameters(
 					  ,study_str **study  // pointer to pointer to struct containing pointers to parameters
 					  );
 void tokenize(
-			  line       // single, one at a time, line read from stdin
-			  ,&policy   // pointer to pointer to policy struct where inputs will be copied
+			  char *line             // pointer to single, one at a time, line read from stdin
+			  ,policy_str **policy   // pointer to pointer to policy struct where inputs will be copied
 			  );
 
 
@@ -156,28 +156,37 @@ int main(int argc, char **argv){
 	// Step 5: Calculate exposure by policy year for policies exposed to study
 	// 
 	//  Export results into file ~exposures.csv~ ( FILE *f_exp ) and into well-formated stdout
+
+	// Step 6: Free memory of ~policy~ struct and its pointers to ~id~, ~date_of_birth~, ~issue_date~, ~status_code~ and ~status_date~
+	free( policy->id );
+	free( policy->date_of_birth );
+	free( policy->issue_date );
+	free( policy->status_code );
+	free( policy->status_date );
+	free( policy );
 	
 	// reads in next line from stdin
 	read = getline(&line, &len, stdin);
   } // while
 
-  // Step 6: Free memory of allocated structs and pointers
-  //   6.1 ~line~, used to read lines of stdin 
+  // Step 7: Free memory of allocated structs and pointers
+  //   7.1 ~line~, used to read lines of stdin 
   free(line);
-  //   6.2 ~study~ struct and its pointers to ~start~, ~end~ and ~type~
+  //   7.2 ~study~ struct and its pointers to ~start~, ~end~ and ~type~
   free( study->start );
   free( study->end   );
   free( study->type  );
   free( study );
-  //   6.3 ~policy~ struct and its pointers to ~id~, ~date_of_birth~, ~issue_date~, ~status_code~ and ~status_date~
+
+  /* //   6.3 ~policy~ struct and its pointers to ~id~, ~date_of_birth~, ~issue_date~, ~status_code~ and ~status_date~ */
   /* free( policy->id ); */
   /* free( policy->date_of_birth ); */
-  /* free( policy-issue_date ); */
+  /* free( policy->issue_date ); */
   /* free( policy->status_code ); */
   /* free( policy->status_date ); */
   /* free( policy ); */
 
-  // Step 7: Close file connections to ~exposures.csv~ and ~out_of_study.csv~.
+  // Step 8: Close file connections to ~exposures.csv~ and ~out_of_study.csv~.
   fclose(f_exp);
   fclose(f_out);
 
@@ -310,7 +319,77 @@ void study_parameters(
 
 }
 
-/* void tokenize( */
-/* 			  line       // single, one at a time, line read from stdin */
-/* 			  ,&policy   // pointer to pointer to policy struct where inputs will be copied */
-/* 			  ); */
+void tokenize(
+			  char *line             // single, one at a time, line read from stdin
+			  ,policy_str **policy   // pointer to pointer to policy struct where inputs will be copied
+			  ){
+  // read one line at a time from stdin
+  // and tokenize its content into the policy struct elements (pointers to id, DOB, issue date, status code and status date)
+
+  // Set ~policy~ pointer to NULL before allocating memory to it
+  *policy = NULL;
+  *policy = (policy_str *) malloc( sizeof(policy_str) );
+  if (*policy == NULL){
+	fprintf( stderr, "Could not allocate memory for ~policy_str~ pointer from within ~tokenize()~ function. Aborting...\n");
+	exit( EXIT_FAILURE );
+  }
+  // By succeeding memory allocation, initialize the struct pointers all to NULL
+  (*policy)->id = NULL;
+  (*policy)->date_of_birth = NULL;
+  (*policy)->issue_date = NULL;
+  (*policy)->status_code = NULL;
+  (*policy)->status_date = NULL;
+
+  // pointers needed to tokenize the read line
+  char *token = NULL;
+  char *rest = line;
+
+  // parsing the policyholder's ID
+  token = strtok_r(rest, DELIM, &rest);
+  (*policy)->id = (char *) realloc( (*policy)->id, strlen(token) + 1 );
+  if( (*policy)->id == NULL){
+	fprintf( stderr, "Could not allocate memory for ~(*policy)->id~ pointer from within ~tokenize()~ function. Aborting...\n");
+	exit( EXIT_FAILURE );
+  }
+  strcpy( (*policy)->id, token ) ;
+
+  // parsing the date of birth of the policyholder
+  token = strtok_r(rest, DELIM, &rest);
+  (*policy)->date_of_birth = (char *) realloc( (*policy)->date_of_birth, strlen(token) + 1 );
+  if( (*policy)->date_of_birth == NULL){
+	fprintf( stderr, "Could not allocate memory for ~(*policy)->date_of_birth~ pointer from within ~tokenize()~ function. Aborting...\n");
+	exit( EXIT_FAILURE );
+  }
+  strcpy( (*policy)->date_of_birth, token ) ;
+
+  // parsing the issue date of the policy
+  token = strtok_r(rest, DELIM, &rest);
+  (*policy)->issue_date = (char *) realloc( (*policy)->issue_date, strlen(token) + 1 );
+  if( (*policy)->issue_date == NULL){
+	fprintf( stderr, "Could not allocate memory for ~(*policy)->issue_date~ pointer from within ~tokenize()~ function. Aborting...\n");
+	exit( EXIT_FAILURE );
+  }
+  strcpy( (*policy)->issue_date, token ) ;
+
+  // parsing the status code of the policy
+  token = strtok_r(rest, DELIM, &rest);
+  (*policy)->status_code = (char *) realloc( (*policy)->status_code, strlen(token) + 1 );
+  if( (*policy)->status_code == NULL){
+	fprintf( stderr, "Could not allocate memory for ~(*policy)->status_code~ pointer from within ~tokenize()~ function. Aborting...\n");
+	exit( EXIT_FAILURE );
+  }
+  strcpy( (*policy)->status_code, token ) ;
+
+  // parsing the date regarding the status date
+  token = strtok_r(rest, DELIM, &rest);
+  (*policy)->status_date = (char *) realloc( (*policy)->status_date, strlen(token) + 1 );
+  if( (*policy)->status_date == NULL){
+	fprintf( stderr, "Could not allocate memory for ~(*policy)->status_date~ pointer from within ~tokenize()~ function. Aborting...\n");
+	exit( EXIT_FAILURE );
+  }
+  strncpy( (*policy)->status_date, token, strlen(token) - 1 ) ; // -1 ignores the '\n' character...
+
+  // Free memory from pointers used for tokenize the read line from stdin
+  token = NULL;
+  rest = NULL;
+}
