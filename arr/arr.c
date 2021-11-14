@@ -22,7 +22,21 @@ void ind(char*);
 
 int main(void) {
 
+  char nul[] = "";
+  printf("strlen('') = %lu\n", (strlen(nul)==0) ? 1 : strlen(nul)   );
 
+  char *sep, *token;
+  sep = strdup( "1;2;;4;5;;7\n");
+  
+  token = strsep( &sep, ";");
+  token = strsep( &sep, ";");
+  token = strsep( &sep, ";");
+  token = strsep( &sep, ";");
+  token = strsep( &sep, ";");
+  token = strsep( &sep, ";");
+  token = strsep( &sep, ";");
+
+  
   printf("sizeof(p.id) = %lu\n",sizeof(p.id) );
 
   //printf("p.id = %5s | p.date_of_birth = %10s\n",p.id, p.date_of_birth);

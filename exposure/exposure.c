@@ -133,8 +133,6 @@ int main(int argc, char **argv){
   
   read = getline(&line, &len, stdin);
   while ( read >= 0  ) {
-	//while ( (read = getline( &line, &len, stdin )) != 1 ) {
-
 	// Step 3: Tokenize line and store policy inputs into the struct ~policy~
 	tokenize( line, &policy);
 
@@ -157,12 +155,13 @@ int main(int argc, char **argv){
 	//
 	bool exposed_policy = true;
 	validate( study, policy, &exposed_policy, f_out );
-	if ( exposed_policy == false)
-	  continue; // go to next line
-	
+
 	// Step 5: Calculate exposure by policy year for policies exposed to study
 	// 
 	//  Export results into file ~exposures.csv~ ( FILE *f_exp ) and into well-formated stdout
+	/* if ( exposed_policy == true){ */
+	/*   calculate_exposure( study, policy ); */
+	/* } */
 
 	// Step 6: Free memory of ~policy~ struct and its pointers to ~id~, ~date_of_birth~, ~issue_date~, ~status_code~ and ~status_date~
 	free( policy->id );
@@ -184,14 +183,6 @@ int main(int argc, char **argv){
   free( study->end   );
   free( study->type  );
   free( study );
-
-  /* //   6.3 ~policy~ struct and its pointers to ~id~, ~date_of_birth~, ~issue_date~, ~status_code~ and ~status_date~ */
-  /* free( policy->id ); */
-  /* free( policy->date_of_birth ); */
-  /* free( policy->issue_date ); */
-  /* free( policy->status_code ); */
-  /* free( policy->status_date ); */
-  /* free( policy ); */
 
   // Step 8: Close file connections to ~exposures.csv~ and ~out_of_study.csv~.
   fclose(f_exp);
@@ -359,10 +350,12 @@ void tokenize(
   // pointers needed to tokenize the read line
   char *token = NULL;
   char *rest = line;
+  int token_len = 0;
 
   // parsing the policyholder's ID
   token = strtok_r(rest, DELIM, &rest);
-  (*policy)->id = (char *) realloc( (*policy)->id, strlen(token) + 1 );
+  token_len  = (strlen(token)==0) ? 1 : strlen(token);
+  (*policy)->id = (char *) realloc( (*policy)->id, token_len + 1);
   if( (*policy)->id == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->id~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
@@ -371,7 +364,8 @@ void tokenize(
 
   // parsing the date of birth of the policyholder
   token = strtok_r(rest, DELIM, &rest);
-  (*policy)->date_of_birth = (char *) realloc( (*policy)->date_of_birth, strlen(token) + 1 );
+  token_len = (strlen(token)==0) ? 1 : strlen(token);
+  (*policy)->date_of_birth = (char *) realloc( (*policy)->date_of_birth, token_len + 1 );
   if( (*policy)->date_of_birth == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->date_of_birth~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
@@ -380,7 +374,8 @@ void tokenize(
 
   // parsing the issue date of the policy
   token = strtok_r(rest, DELIM, &rest);
-  (*policy)->issue_date = (char *) realloc( (*policy)->issue_date, strlen(token) + 1 );
+  token_len = (strlen(token)==0) ? 1 : strlen(token);
+  (*policy)->issue_date = (char *) realloc( (*policy)->issue_date, token_len + 1 );
   if( (*policy)->issue_date == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->issue_date~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
@@ -389,7 +384,8 @@ void tokenize(
 
   // parsing the status code of the policy
   token = strtok_r(rest, DELIM, &rest);
-  (*policy)->status_code = (char *) realloc( (*policy)->status_code, strlen(token) + 1 );
+  token_len = (strlen(token)==0) ? 1 : strlen(token);
+  (*policy)->status_code = (char *) realloc( (*policy)->status_code, token_len + 1);
   if( (*policy)->status_code == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->status_code~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
@@ -398,12 +394,14 @@ void tokenize(
 
   // parsing the date regarding the status date
   token = strtok_r(rest, DELIM, &rest);
-  (*policy)->status_date = (char *) realloc( (*policy)->status_date, strlen(token) + 1 );
+  token_len = (strlen(token)==0) ? 1 : strlen(token);
+  (*policy)->status_date = (char *) realloc( (*policy)->status_date, token_len + 1);
   if( (*policy)->status_date == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->status_date~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
   }
-  strncpy( (*policy)->status_date, token, strlen(token) - 1 ) ; // -1 ignores the '\n' character...
+  memset( (*policy)->status_date, 0, sizeof( (*policy)->status_date) );
+  strcpy( (*policy)->status_date, token ) ; 
 
   // Free memory from pointers used for tokenize the read line from stdin
   token = NULL;
@@ -482,27 +480,27 @@ void validate(
   // Compound validations
   //
   //  C1. Date of birth must be older then study end date
-  if ( g_date_compare(dob, e) >= 0 ){
+  if ( g_date_valid(dob) && g_date_compare(dob, e) >= 0 ){
 	fprintf( f_out, "%s;Date of birth (DOB) after study end date (EOS);DOB %s >= EOS %s\n", policy->id, policy->date_of_birth, study->end );
 	*exposed = false;
   }
   //  C2. Policy issue date must be older than policy status date (when policy status code is valid and not equal to 1)
-  if ( psc_valid == true && psc != 1 && g_date_compare(pid, psd) >= 0 ){
+  if ( psc_valid == true && psc != 1 && g_date_valid(pid) && g_date_valid(psd) && g_date_compare(pid, psd) >= 0 ){
 	fprintf( f_out, "%s;Policy issue date (PID) after Policy status date (PSD);PID %s >= PSD %s\n", policy->id, policy->issue_date, policy->status_date );
 	*exposed = false;
   }
   //  C3. Policy issue date must be older than study end date
-  if ( g_date_compare(pid, e) >= 0 ){
+  if ( g_date_valid(pid) && g_date_compare(pid, e) >= 0 ){
 	fprintf( f_out, "%s;Policy issue date (PID) after study end date (EOS);PID %s >= EOS %s\n", policy->id, policy->issue_date, study->end );
 	*exposed = false;
   }
   //  C4. Policy status date must be sooner than study start date
-  if ( psc_valid == true && psc != 1 && g_date_compare(psd, s) < 0 ){
+  if ( psc_valid == true && psc != 1 && g_date_valid(psd) && g_date_compare(psd, s) < 0 ){
 	fprintf( f_out, "%s;Policy status date (PSD) before Study start date (SOS);PSD %s < SOS %s\n", policy->id, policy->status_date, study->start );
 	*exposed = false;
   }
   //  C5. Date of birth must be earlier than policy issue date
-  if ( g_date_compare(dob, pid) >= 0 ){
+  if ( g_date_valid(dob) && g_date_valid(pid) && g_date_compare(dob, pid) >= 0 ){
 	fprintf( f_out, "%s;Date of birth (DOB) after Policy issue date (PID);DOB %s > PID %s\n", policy->id, policy->date_of_birth, policy->issue_date );
 	*exposed = false;
   }

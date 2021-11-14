@@ -17,6 +17,7 @@ policy *p = NULL;
 
 // prototype of functions
 void muda(policy **);
+void calloc_null(policy **);
 
 int main(void) {
 
@@ -24,7 +25,10 @@ int main(void) {
 
   muda(&p);
   printf( "p->id: %s\n", p->id);
-  
+
+  calloc_null(&p);
+  printf( "p->id: %s\n", p->id);
+
   free(p->id);
   free(p);
   
@@ -48,4 +52,15 @@ void muda(policy **p){
   strcpy((*p)->id, "mudou via muda()");
   printf( "p->id (chamado de dentro da muda(): %s.\n", (*p)->id);
   printf( "p->id (chamado de dentro da muda(): %p.\n", (*p)->id);
+}
+
+void calloc_null(policy **p){
+
+  free((*p)->id);
+  (*p)->id = (char *) calloc( 3, sizeof(char) );
+  printf( "p->id (calloc reduzido a 3 posições de dentro da calloc_null(): %p.\n", (*p)->id);
+
+  strcpy( (*p)->id , "123" );
+  printf( "p->id (chamado de dentro da calloc_null(): %s.\n", (*p)->id);
+
 }
