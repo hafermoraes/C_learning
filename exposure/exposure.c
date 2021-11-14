@@ -353,7 +353,8 @@ void tokenize(
   int token_len = 0;
 
   // parsing the policyholder's ID
-  token = strtok_r(rest, DELIM, &rest);
+  //token = strtok_r(rest, DELIM, &rest);
+  token = strsep( &rest, DELIM);
   token_len  = (strlen(token)==0) ? 1 : strlen(token);
   (*policy)->id = (char *) realloc( (*policy)->id, token_len + 1);
   if( (*policy)->id == NULL){
@@ -363,7 +364,8 @@ void tokenize(
   strcpy( (*policy)->id, token ) ;
 
   // parsing the date of birth of the policyholder
-  token = strtok_r(rest, DELIM, &rest);
+  //token = strtok_r(rest, DELIM, &rest);
+  token = strsep( &rest, DELIM);
   token_len = (strlen(token)==0) ? 1 : strlen(token);
   (*policy)->date_of_birth = (char *) realloc( (*policy)->date_of_birth, token_len + 1 );
   if( (*policy)->date_of_birth == NULL){
@@ -373,7 +375,8 @@ void tokenize(
   strcpy( (*policy)->date_of_birth, token ) ;
 
   // parsing the issue date of the policy
-  token = strtok_r(rest, DELIM, &rest);
+  //token = strtok_r(rest, DELIM, &rest);
+  token = strsep( &rest, DELIM);
   token_len = (strlen(token)==0) ? 1 : strlen(token);
   (*policy)->issue_date = (char *) realloc( (*policy)->issue_date, token_len + 1 );
   if( (*policy)->issue_date == NULL){
@@ -383,7 +386,8 @@ void tokenize(
   strcpy( (*policy)->issue_date, token ) ;
 
   // parsing the status code of the policy
-  token = strtok_r(rest, DELIM, &rest);
+  //token = strtok_r(rest, DELIM, &rest);
+  token = strsep( &rest, DELIM);
   token_len = (strlen(token)==0) ? 1 : strlen(token);
   (*policy)->status_code = (char *) realloc( (*policy)->status_code, token_len + 1);
   if( (*policy)->status_code == NULL){
@@ -393,14 +397,15 @@ void tokenize(
   strcpy( (*policy)->status_code, token ) ;
 
   // parsing the date regarding the status date
-  token = strtok_r(rest, DELIM, &rest);
+  //token = strtok_r(rest, DELIM, &rest);
+  token = strsep( &rest, DELIM);
   token_len = (strlen(token)==0) ? 1 : strlen(token);
   (*policy)->status_date = (char *) realloc( (*policy)->status_date, token_len + 1);
   if( (*policy)->status_date == NULL){
 	fprintf( stderr, "Could not allocate memory for ~(*policy)->status_date~ pointer from within ~tokenize()~ function. Aborting...\n");
 	exit( EXIT_FAILURE );
   }
-  memset( (*policy)->status_date, 0, sizeof( (*policy)->status_date) );
+  memset( (*policy)->status_date, 0, sizeof((*policy)->status_date) );
   strcpy( (*policy)->status_date, token ) ; 
 
   // Free memory from pointers used for tokenize the read line from stdin
