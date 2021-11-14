@@ -78,6 +78,12 @@ void tokenize(
 			  char *line             // pointer to single, one at a time, line read from stdin
 			  ,policy_str **policy   // pointer to pointer to policy struct where inputs will be copied
 			  );
+void validate(
+			  study_str *study    // pointer to struct containing pointers to parameters
+			  ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
+			  ,bool *exposed      // pointer to boolean flag controlling if policy is exposed to study
+			  ,FILE *f_out        // pointer to LOG file ~f_out~, where the problems will be listed if policy is not exposed to study
+			  );
 
 
 // --------------------------------------------------------------------------------------------------------------------------
@@ -139,19 +145,20 @@ int main(int argc, char **argv){
 	//    4.2  Policy issue date must be a valid date
 	//    4.3  Policy status code must be a valid integer between 1 and 6
 	//    4.4  Policy status date must be a valid date (when policy status code is not 1)
-	//    4.5  Date of birth must be older than policy issue date
+	//    4.5  Date of birth must be older than study end date
 	//    4.6  Policy issue date must be older than policy status date (when policy status code is not 1)
 	//    4.7  Policy issue date must be older than study end date
 	//    4.8  Policy status date must be newer than study start date
+	//    4.9  Date of birth must be earlier than policy issue date
 	//
 	//  Result:  If any from 4.1-4.8 fails...
 	//    R1. Flag inconsistencies into log file ~out_of_study.csv~ ( FILE *f_out )
 	//    R2. Flag ~exposed_policy~to false
 	//
-	/* bool exposed_policy = true; */
-	/* validate( policy, &exposed_policy, f_out ); */
-	/* if ( exposed_policy == false) */
-	/*   continue; // go to next line */
+	bool exposed_policy = true;
+	validate( study, policy, &exposed_policy, f_out );
+	if ( exposed_policy == false)
+	  continue; // go to next line
 	
 	// Step 5: Calculate exposure by policy year for policies exposed to study
 	// 
@@ -219,6 +226,8 @@ void study_parameters(
   (*study)->start = NULL;
   (*study)->end = NULL;
   (*study)->type = NULL;
+
+  int study_type = 0;
   
   // temporary variable for correct parsing of study start and study end dates
   GDate *date = g_date_new();
@@ -293,6 +302,7 @@ void study_parameters(
 			  exit( EXIT_FAILURE );
 			}
 			strncpy( (*study)->type, optarg, strlen(optarg));
+			study_type = atoi((*study)->type);
 		  }
 		  break;
 
@@ -311,6 +321,12 @@ void study_parameters(
   // study start date after study end date
   if( ((*study)->start != NULL) && ((*study)->end != NULL) && ( strcmp( (*study)->start, (*study)->end ) >= 0) ){
 	fprintf( stderr, "Study start date must be before study end date.\n");
+	*ok = false; // setting flag on due to the error
+  }
+
+  // study type non numeric or outside interval [1,6]
+  if( study_type == 0 || !(study_type >= 1 && study_type <= 6)){
+	fprintf( stderr, "Study type must be a number between 1 and 6 .\n");
 	*ok = false; // setting flag on due to the error
   }
 
@@ -392,4 +408,109 @@ void tokenize(
   // Free memory from pointers used for tokenize the read line from stdin
   token = NULL;
   rest = NULL;
+}
+
+void validate(
+			  study_str *study    // pointer to struct containing pointers to study parameters
+			  ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
+			  ,bool *exposed      // pointer to boolean flag controlling if policy is exposed to study
+			  ,FILE *f_out        // pointer to LOG file ~f_out~, where the problems will be listed if policy is not exposed to study
+			  ){
+  //  Validations done in this function
+  //
+  //   Individual ones
+  //    - I1. Date of birth must be a valid date
+  //    - I2. Policy issue date must be a valid date
+  //    - I3. Policy status code must be a valid integer between 1 and 6
+  //    - I4. Policy status date must be a valid date (when policy status code is valid and not equal to 1)
+  //
+  //   Compound ones
+  //    - C1. Date of birth must be older then study end date
+  //    - C2. Policy issue date must be older than policy status date (when policy status code is valid and not equal to 1)
+  //    - C3. Policy issue date must be older than study end date
+  //    - C4. Policy status date must be sooner than study start date
+  //    - C5. Date of birth must be earlier than policy issue date
+  //
+  //  Result:  If any of the above fails, then
+  //    - Flag inconsistencies into log file ~out_of_study.csv~ ( FILE *f_out )
+  //    - Flag ~exposed_policy~to false
+
+  // Declaration of variables used to validate exposure of policy to study
+  GDate   *s = g_date_new(); // study start date
+  GDate   *e = g_date_new(); // study end date
+  GDate *dob = g_date_new(); // policyholder's date of birth
+  GDate *pid = g_date_new(); // policy issue date
+  int    psc = 0;            // policy status code (PSC)
+  bool psc_valid;            // PSC numeric and between 1 and 6
+  GDate *psd = g_date_new(); // policy status date
+  
+  //  both study start and study end dates are valid as a result of function ~study_parameters()~
+  g_date_set_parse( s, study->start );
+  g_date_set_parse( e, study->end );
+  
+  // Individual validations
+  //
+  //  I1. Policyholder's Date of Birth must be a valid date
+  g_date_set_parse( dob, policy->date_of_birth );
+  if( !g_date_valid(dob) ){
+	fprintf( f_out, "%s;Invalid date of birth;%s\n", policy->id, policy->date_of_birth );
+	*exposed = false;
+  }
+  //  I2. Policy issue date must be a valid date
+  g_date_set_parse( pid, policy->issue_date );
+  if( !g_date_valid(pid) ){
+	fprintf( f_out, "%s;Invalid policy issue date;%s\n", policy->id, policy->issue_date );
+	*exposed = false;
+  }
+  //  I3. Policy status code must be a valid integer between 1 and 6
+  psc_valid = true;
+  if(
+	 (psc = atoi(policy->status_code)) == 0 || // if policy status code is not a number OR
+	 !(atoi(policy->status_code) >= 1 && atoi(policy->status_code) <=6) // is not 1,2,3,4,5 nor 6
+	 ){
+	fprintf( f_out, "%s;Invalid policy status code (must be a number between 1 and 6);%s\n", policy->id, policy->status_code );
+	*exposed = false;
+	psc_valid = false;
+  }
+  //  I4. Policy status date must be a valid date (when policy status code is valid and not equal to 1)
+  g_date_set_parse( psd, policy->status_date );
+  if( psc_valid == true && psc != 1 && !g_date_valid(psd) ){
+	fprintf( f_out, "%s;Invalid policy status date;%s\n", policy->id, policy->status_date );
+	*exposed = false;
+  }
+
+  // Compound validations
+  //
+  //  C1. Date of birth must be older then study end date
+  if ( g_date_compare(dob, e) >= 0 ){
+	fprintf( f_out, "%s;Date of birth (DOB) after study end date (EOS);DOB %s >= EOS %s\n", policy->id, policy->date_of_birth, study->end );
+	*exposed = false;
+  }
+  //  C2. Policy issue date must be older than policy status date (when policy status code is valid and not equal to 1)
+  if ( psc_valid == true && psc != 1 && g_date_compare(pid, psd) >= 0 ){
+	fprintf( f_out, "%s;Policy issue date (PID) after Policy status date (PSD);PID %s >= PSD %s\n", policy->id, policy->issue_date, policy->status_date );
+	*exposed = false;
+  }
+  //  C3. Policy issue date must be older than study end date
+  if ( g_date_compare(pid, e) >= 0 ){
+	fprintf( f_out, "%s;Policy issue date (PID) after study end date (EOS);PID %s >= EOS %s\n", policy->id, policy->issue_date, study->end );
+	*exposed = false;
+  }
+  //  C4. Policy status date must be sooner than study start date
+  if ( psc_valid == true && psc != 1 && g_date_compare(psd, s) < 0 ){
+	fprintf( f_out, "%s;Policy status date (PSD) before Study start date (SOS);PSD %s < SOS %s\n", policy->id, policy->status_date, study->start );
+	*exposed = false;
+  }
+  //  C5. Date of birth must be earlier than policy issue date
+  if ( g_date_compare(dob, pid) >= 0 ){
+	fprintf( f_out, "%s;Date of birth (DOB) after Policy issue date (PID);DOB %s > PID %s\n", policy->id, policy->date_of_birth, policy->issue_date );
+	*exposed = false;
+  }
+  
+  // frees memory from GDate pointers use to validate dates
+  g_date_free(s);
+  g_date_free(e);
+  g_date_free(pid);
+  g_date_free(dob);
+  g_date_free(psd);
 }
