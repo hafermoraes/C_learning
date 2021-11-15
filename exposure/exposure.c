@@ -33,7 +33,7 @@
 //  (2) accurate adjustment for leap years:  365.2425 days/year --> 365.2425 = ( 291 * 366 + 909 * 365 ) / 1200  )
 //  (3) fair adjustment for leap years:      365.25   days/year --> 365.25   = ( 3 * 365 + 366 ) / 4
 //
-const float DAYS_IN_YEAR = 365.25;
+const float DAYS_IN_YEAR = 365.00;
 //
 // Field delimiter in stdin stream
 //
@@ -173,35 +173,38 @@ int main(int argc, char **argv){
 	// 
 	//  Export results into file ~exposures.csv~ ( FILE *f_exp ) and into well-formated stdout
 	if ( exposed_policy == true){
+
 	  // policy duration at start and at end
 	  double DS = duration_at_start( study, policy );
 	  double DE = duration_at_end(   study, policy );
+
 	  // exposure at policy year
 	  double E_t = 0;
-	  // policy claim year
-	  int claim_year = 0 ;
-	  // special case: in a death any cause study (PSC==3), accidental death (PSC==4) counts as a claim
-	  if ( strcmp( study->type, "3") && strcmp( policy->status_code, "4") ){
-		  claim_year = (int) policy_claim_year( study, policy) ;
-		}
 
-	  // boundaries for policy year loop ahead
-	  //  DS < t < DE +1
-	  int from_t = (int) floor(DS+1);  // t > DS
-	  int to_t   = (int) floor(DE  );  // t < DE + 1   (or t <= DE )
+	  // policy claim
+	  bool claim = false ;
+	  if ( strcmp( study->type, policy-> status_code) == 0 ) {
+		claim = true;
+	  }
+	  if ( strcmp( study->type, "3") == 0 && strcmp( policy->status_code, "4") == 0 ){
+		  claim = true ; // special case: in a death any cause study (PSC==3), accidental death (PSC==4) counts as a claim
+	  }
+	  int claim_year = (int) policy_claim_year( study, policy);
+
+	  // boundaries for policy year loop ahead ( DS < t < DE +1 )
+	  int from_t = 1 + (int) floor(DS);  // t > DS  (or t >= 1 + DS)
+	  int to_t   = (int) floor( DE + 1.0 ) ;  // t < DE + 1   (or t <= DE )
 	  
 	  // calculation of exposure for each policy year
 	  // E(t) = min(DE, t) - max(DS, t-1), for (t > DS) AND (t < DE+1) AND (TD > S) AND (ID < E)
 	  // 
 	  for (int t = from_t; t <= to_t; t++) {
+		// Exposure calculation
 		E_t = (
-			   (DE < t) ? DE : t  // minimum( DE, t)
-			   ) -
-		  (
-		   (DS > t-1) ? DS : t-1 // maximum( DS, t-1)
-		   );
-		if ( t == (int) policy_claim_year( study, policy) ) {
-		  claim_year = 1 ;
+			   ((DE < t) ? DE : t)  -  // minimum( DE, t)
+			   ((DS > t-1) ? DS : t-1) // maximum( DS, t-1)
+			   ); 
+		if ( (claim == true) && (t == claim_year ) ) {
 		  E_t = 1; // full exposure in the year when claim happened
 		}
 		printf( "Id: %10s \tDS: %2.4f\tDE: %2.4f\tt: %3d\tClaim: %d\tE(t): %1.5f\n", policy->id, DS, DE, t, claim_year, E_t);
@@ -662,6 +665,7 @@ double policy_claim_year(
   // if policy status code coincides with study type, then it is a 'claim'
   if( strcmp( study->type, policy->status_code ) == 0 ){
 	result = g_date_days_between( pid, psd ) / DAYS_IN_YEAR;
+	result = result + 1.0; // 0 years difference means the policy terminated in its first policy year
 	result = floor( result ); // take just the integral part
   }
 
