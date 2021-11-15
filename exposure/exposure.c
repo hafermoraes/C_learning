@@ -93,6 +93,10 @@ double duration_at_end(
 					   study_str *study    // pointer to struct containing pointers to parameters
 					   ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
 					   );
+double policy_claim_year(
+						 study_str *study    // pointer to struct containing pointers to study parameters
+						 ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
+						 );
 
 
 // --------------------------------------------------------------------------------------------------------------------------
@@ -100,7 +104,7 @@ double duration_at_end(
 int main(int argc, char **argv){
   
   // Improve guessing power from glib's g_date_set_parse() function
-  setlocale( LC_ALL, "");
+  //setlocale( LC_ALL, "");
 
   // File connections
   //
@@ -168,9 +172,32 @@ int main(int argc, char **argv){
 	// Step 5: Calculate exposure by policy year for policies exposed to study
 	// 
 	//  Export results into file ~exposures.csv~ ( FILE *f_exp ) and into well-formated stdout
-	/* if ( exposed_policy == true){ */
-	/*   calculate_exposure( study, policy ); */
-	/* } */
+	if ( exposed_policy == true){
+	  // policy duration at start
+	  double DS = duration_at_start( study, policy );
+	  // policy duration at end
+	  double DE = duration_at_end(   study, policy );
+	  // exposure at policy year
+	  double E_t = 0;
+	  // policy claim year
+	  int claim_year = (int) policy_claim_year( study, policy) ;
+
+	  // counter for policy year
+	  int t_from = (int) ceil(DS);
+	  int t_to   = (int)floor(DE);
+
+	  // calculation of exposure for each policy year
+	  for (int t = t_from; t <= t_to; t++) {
+		E_t = (
+			   (DE <= t) ? DE : t
+			   ) -
+		  (
+		   (DS >= t-1) ? DS : t-1
+		   );
+		printf( "Id: %10s \tDS: %2.4f\tDE: %2.4f\tt: %3d\tClaim: %d\tE(t): %1.5f\n", policy->id, DS, DE, t, claim_year, E_t);
+	  }
+	  
+	}
 
 	// Step 6: Free memory of ~policy~ struct and its pointers to ~id~, ~date_of_birth~, ~issue_date~, ~status_code~ and ~status_date~
 	free( policy->id );
@@ -603,5 +630,33 @@ double duration_at_end(
   g_date_free(td);
   g_date_free(e);
 
+  return result;
+}
+
+double policy_claim_year(
+			  study_str *study    // pointer to struct containing pointers to study parameters
+			  ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
+			  ){
+  // calculates the policy claim  year, in case of claim (PSC == Study type)
+
+  // variable declarations
+  double result = 0;
+  GDate *pid = g_date_new();
+  GDate *psd = g_date_new();
+  
+  // assigning dates
+  g_date_set_parse( pid, policy->issue_date);
+  g_date_set_parse( psd, policy->status_date);
+
+  // if policy status code coincides with study type, then it is a 'claim'
+  if( study->type == policy->status_code ){
+	result = g_date_days_between( pid, psd ) / DAYS_IN_YEAR;
+	result = floor( result ); // take just the integral part
+  }
+
+  // frees memory from allocated dates
+  g_date_free( pid );
+  g_date_free( psd );
+  
   return result;
 }
