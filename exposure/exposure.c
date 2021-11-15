@@ -21,6 +21,7 @@
 #include <string.h>      // strings parsing: strtok_r, strlen, strcmp, strcat, strncpy
 #include <stdlib.h>      // malloc, calloc, realloc, memset ...
 #include <stdbool.h>     // bool (data type)
+#include <math.h>        // ceiling function ceil()
 #include <locale.h>      // setlocale()
 #include <getopt.h>      // command line arguments: getopt_long()
 #include <glib.h>        // date calculations: g_date...
@@ -84,6 +85,14 @@ void validate(
 			  ,bool *exposed      // pointer to boolean flag controlling if policy is exposed to study
 			  ,FILE *f_out        // pointer to LOG file ~f_out~, where the problems will be listed if policy is not exposed to study
 			  );
+double duration_at_start(
+						 study_str *study    // pointer to struct containing pointers to parameters
+						 ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
+						 );
+double duration_at_end(
+					   study_str *study    // pointer to struct containing pointers to parameters
+					   ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
+					   );
 
 
 // --------------------------------------------------------------------------------------------------------------------------
@@ -532,4 +541,67 @@ void validate(
   g_date_free(pid);
   g_date_free(dob);
   g_date_free(psd);
+}
+
+double duration_at_start(
+			  study_str *study    // pointer to struct containing pointers to study parameters
+			  ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
+			  ){
+  // calculates the duration of policy at the study start date as
+  // DS = policy duration at start of study period
+  //    = maximum (ID, S) – ID
+
+  // variable declarations
+  double result = 0;
+  GDate *pid = g_date_new();
+  GDate *s = g_date_new();
+
+  // assigning dates
+  g_date_set_parse( pid, policy->issue_date);
+  g_date_set_parse( s, study->start);
+
+  // calculation of duration at start
+  result = g_date_days_between(
+							   pid
+							   ,(g_date_compare( pid, s) <= 0) ? s : pid
+							   ) / DAYS_IN_YEAR;
+  // frees memory from allocated dates
+  g_date_free(pid);
+  g_date_free(s);
+
+  return result;
+}
+
+double duration_at_end(
+			  study_str *study    // pointer to struct containing pointers to study parameters
+			  ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
+			  ){
+  // calculates the duration of policy at the study end date as
+  // DE = policy duration at end of study period
+  //    = minimum (E, TD) – ID
+
+  // variable declarations
+  double result = 0;
+  GDate *pid = g_date_new();
+  GDate *td = g_date_new();
+  GDate *e = g_date_new();
+
+  // assigning dates
+  g_date_set_parse( pid, policy->issue_date);
+  g_date_set_parse( e, study->end);
+  g_date_set_parse( td,  ( atoi(policy->status_code) == 1) ? study->end : policy->status_date );
+
+  // calculation of duration at end
+  result = g_date_days_between(
+							   pid
+							   ,(g_date_compare( e, td) <= 0) ? e : td
+							   ) / DAYS_IN_YEAR;
+  result = (policy->status_code == study->type) ? ceil(result) : result;
+
+  // frees memory from allocated dates
+  g_date_free(pid);
+  g_date_free(td);
+  g_date_free(e);
+
+  return result;
 }
