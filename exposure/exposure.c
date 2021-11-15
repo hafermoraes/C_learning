@@ -173,27 +173,37 @@ int main(int argc, char **argv){
 	// 
 	//  Export results into file ~exposures.csv~ ( FILE *f_exp ) and into well-formated stdout
 	if ( exposed_policy == true){
-	  // policy duration at start
+	  // policy duration at start and at end
 	  double DS = duration_at_start( study, policy );
-	  // policy duration at end
 	  double DE = duration_at_end(   study, policy );
 	  // exposure at policy year
 	  double E_t = 0;
 	  // policy claim year
-	  int claim_year = (int) policy_claim_year( study, policy) ;
+	  int claim_year = 0 ;
+	  // special case: in a death any cause study (PSC==3), accidental death (PSC==4) counts as a claim
+	  if ( strcmp( study->type, "3") && strcmp( policy->status_code, "4") ){
+		  claim_year = (int) policy_claim_year( study, policy) ;
+		}
 
-	  // counter for policy year
-	  int t_from = (int) ceil(DS);
-	  int t_to   = (int)floor(DE);
-
+	  // boundaries for policy year loop ahead
+	  //  DS < t < DE +1
+	  int from_t = (int) floor(DS+1);  // t > DS
+	  int to_t   = (int) floor(DE  );  // t < DE + 1   (or t <= DE )
+	  
 	  // calculation of exposure for each policy year
-	  for (int t = t_from; t <= t_to; t++) {
+	  // E(t) = min(DE, t) - max(DS, t-1), for (t > DS) AND (t < DE+1) AND (TD > S) AND (ID < E)
+	  // 
+	  for (int t = from_t; t <= to_t; t++) {
 		E_t = (
-			   (DE <= t) ? DE : t
+			   (DE < t) ? DE : t  // minimum( DE, t)
 			   ) -
 		  (
-		   (DS >= t-1) ? DS : t-1
+		   (DS > t-1) ? DS : t-1 // maximum( DS, t-1)
 		   );
+		if ( t == (int) policy_claim_year( study, policy) ) {
+		  claim_year = 1 ;
+		  E_t = 1; // full exposure in the year when claim happened
+		}
 		printf( "Id: %10s \tDS: %2.4f\tDE: %2.4f\tt: %3d\tClaim: %d\tE(t): %1.5f\n", policy->id, DS, DE, t, claim_year, E_t);
 	  }
 	  
@@ -401,6 +411,7 @@ void tokenize(
   // pointers needed to tokenize the read line
   char *token = NULL;
   char *rest = line;
+  
   int token_len = 0;
 
   // parsing the policyholder's ID
@@ -530,7 +541,7 @@ void validate(
   //  I4. Policy status date must be a valid date (when policy status code is valid and not equal to 1)
   g_date_set_parse( psd, policy->status_date );
   if( psc_valid == true && psc != 1 && !g_date_valid(psd) ){
-	fprintf( f_out, "%s;Invalid policy status date;%s\n", policy->id, policy->status_date );
+	fprintf( f_out, "%s;Invalid or missing policy status date;%s\n", policy->id, policy->status_date );
 	*exposed = false;
   }
 
@@ -590,7 +601,7 @@ double duration_at_start(
   // calculation of duration at start
   result = g_date_days_between(
 							   pid
-							   ,(g_date_compare( pid, s) <= 0) ? s : pid
+							   ,(g_date_compare( pid, s) < 0) ? s : pid
 							   ) / DAYS_IN_YEAR;
   // frees memory from allocated dates
   g_date_free(pid);
@@ -610,7 +621,7 @@ double duration_at_end(
   // variable declarations
   double result = 0;
   GDate *pid = g_date_new();
-  GDate *td = g_date_new();
+  GDate *td = g_date_new(); // termination date. equals end of study (e) if policy is inforce
   GDate *e = g_date_new();
 
   // assigning dates
@@ -621,9 +632,9 @@ double duration_at_end(
   // calculation of duration at end
   result = g_date_days_between(
 							   pid
-							   ,(g_date_compare( e, td) <= 0) ? e : td
+							   ,(g_date_compare( e, td) < 0) ? e : td 
 							   ) / DAYS_IN_YEAR;
-  result = (policy->status_code == study->type) ? ceil(result) : result;
+  // result = (policy->status_code == study->type) ? ceil(result) : result;
 
   // frees memory from allocated dates
   g_date_free(pid);
@@ -649,7 +660,7 @@ double policy_claim_year(
   g_date_set_parse( psd, policy->status_date);
 
   // if policy status code coincides with study type, then it is a 'claim'
-  if( study->type == policy->status_code ){
+  if( strcmp( study->type, policy->status_code ) == 0 ){
 	result = g_date_days_between( pid, psd ) / DAYS_IN_YEAR;
 	result = floor( result ); // take just the integral part
   }
