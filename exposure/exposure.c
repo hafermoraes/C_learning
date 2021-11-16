@@ -97,6 +97,9 @@ double policy_claim_year(
 						 study_str *study    // pointer to struct containing pointers to study parameters
 						 ,policy_str *policy // pointer to policy struct with parsed inputs to be validated
 						 );
+int age_at_issue(
+				 policy_str *policy // pointer to policy struct with parsed inputs to be validated
+				 );
 
 
 // --------------------------------------------------------------------------------------------------------------------------
@@ -181,6 +184,9 @@ int main(int argc, char **argv){
 	  // exposure at policy year
 	  double E_t = 0;
 
+	  // age at issue
+	  int age_issue = age_at_issue( policy );
+
 	  // policy claim
 	  bool claim = false ;
 	  if ( strcmp( study->type, policy-> status_code) == 0 ) {
@@ -207,7 +213,17 @@ int main(int argc, char **argv){
 		if ( (claim == true) && (t == claim_year ) ) {
 		  E_t = 1; // full exposure in the year when claim happened
 		}
-		printf( "Id: %10s \tDS: %2.4f\tDE: %2.4f\tt: %3d\tClaim: %d\tE(t): %1.5f\n", policy->id, DS, DE, t, claim_year, E_t);
+		// printf( "Id: %10s \tDS: %2.4f\tDE: %2.4f\tt: %3d\tClaim: %d\tE(t): %1.5f\n", policy->id, DS, DE, t, claim_year, E_t);
+		fprintf(
+				f_exp
+				,"%s;%d;%d;%d;%d;%f\n"
+				,policy->id
+				,age_issue
+				,t
+				,age_issue + t - 1 // attained age: age at issue + t - 1
+				,( (claim == true) && (t == claim_year ) ) ? 1 : 0 // actual
+				,E_t // exposure (to be used in the 'expected' calculation
+				);
 	  }
 	  
 	}
@@ -674,4 +690,32 @@ double policy_claim_year(
   g_date_free( psd );
   
   return result;
+}
+
+int age_at_issue(
+			  policy_str *policy // pointer to policy struct with parsed inputs to be validated
+			  ){
+  // calculates the age at issue
+
+  // variable declarations
+  double result = 0;
+  GDate *dob = g_date_new();
+  GDate *pid = g_date_new();
+
+  // assigning dates
+  g_date_set_parse( dob, policy->date_of_birth);
+  g_date_set_parse( pid, policy->issue_date);
+
+  // calculation of duration at start
+  result = g_date_days_between(
+							   dob
+							   ,pid
+							   ) / DAYS_IN_YEAR;
+  result = floor( result );
+  
+  // frees memory from allocated dates
+  g_date_free(pid);
+  g_date_free(dob);
+
+  return (int) result;
 }
