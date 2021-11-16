@@ -1,3 +1,9 @@
+arr/arr
+exposure/exposure
+exposure/out_of_study.csv
+exposure/stdin.txt
+
+struct_prt/strptr
 
 rng/*.o
 rng/*.out
