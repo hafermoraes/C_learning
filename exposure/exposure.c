@@ -488,6 +488,7 @@ void tokenize(
   }
   size_t psd_n = sizeof((*policy)->status_date);
   memset( (*policy)->status_date, 0, psd_n );
+  token = strsep( &token, "\n" ); // trick to trim "\n" out of string 'token'
   strcpy( (*policy)->status_date, token ) ; 
 
   // Free memory from pointers used for tokenize the read line from stdin
